@@ -1,4 +1,4 @@
-# pypypy
+# pypypy(пупупу)
 
 Все графики находятся в handle.ipynb
 
