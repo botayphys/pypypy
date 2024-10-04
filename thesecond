@@ -87,3 +87,53 @@ double value_probabilty(AbstractDice &d, unsigned value, unsigned number_of_roll
     }
     return static_cast<double>(accum) / number_of_rolls;  // Возвращаем вероятность как отношение попаданий к общему числу бросков
 }
+
+// Функция для вычисления математического ожидания
+double expected_value(AbstractDice &d, unsigned number_of_rolls = 1) {
+    auto accum = 0llu;  // Счётчик для суммы всех бросков
+    // Выполняем number_of_rolls бросков кубика и суммируем их результаты
+    for (unsigned cnt = 0; cnt != number_of_rolls; ++cnt)
+        accum += d.roll();
+    // Возвращаем среднее значение бросков (математическое ожидание)
+    return static_cast<double>(accum) / static_cast<double>(number_of_rolls);
+}
+
+int main() {
+    // Инициализируем три кубика с различным количеством граней
+    int max = 100, three_max = 6, number_of_rolls = 1000000;  // max — количество граней кубика, number_of_rolls — количество бросков для вычисления ожидания
+    Dice alpha(max, 12414);  // Кубик с 100 гранями
+    Dice beta(three_max, 12423414);  // Кубик с 6 гранями
+    Dice gamma(three_max, 122414);  // Кубик с 6 гранями
+    Dice theta(three_max, 213123);  // Ещё один кубик с 6 гранями
+
+    // Объединяем три кубика в набор, который суммирует их значения
+    ThreeDicePool three(beta, gamma, theta);
+
+    // Создаём кубик с функцией штрафа (выбирает минимальное значение из двух бросков)
+    PenaltyDice penalty(alpha); 
+    // Создаём кубик с функцией преимущества (выбирает максимальное значение из двух бросков)
+    BonusDice bonus(alpha);
+
+    // Выводим математическое ожидание для каждого из кубиков
+    std::cout << expected_value(alpha, number_of_rolls) << " ";  // Обычный кубик
+    std::cout << expected_value(penalty, number_of_rolls) << " ";  // Кубик со штрафом
+    std::cout << expected_value(bonus, number_of_rolls) << std::endl;  // Кубик с преимуществом
+
+    // Открываем файл для записи данных (в формате CSV)
+    std::ofstream data("second.csv");
+    data << "Target\tStandart\tThree\tPenalty\tBonus" << std::endl;
+
+    // Рассчитываем вероятности выпадения различных значений для каждого кубика и записываем в файл
+    for (int target = 1; target < max; target++) {
+        data << target << "\t" << value_probabilty(alpha, target, number_of_rolls) << "\t";  // Обычный кубик
+        data << value_probabilty(three, target, number_of_rolls) << "\t";  // Набор из трёх кубиков
+        data << value_probabilty(penalty, target, number_of_rolls) << "\t";  // Кубик со штрафом
+        data << value_probabilty(bonus, target, number_of_rolls);  // Кубик с преимуществом
+        data << std::endl;
+    }
+
+    // Закрываем файл после завершения записи
+    data.close();
+
+    return 0;
+}
