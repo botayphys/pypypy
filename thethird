@@ -84,3 +84,40 @@ double expected_value(AbstractDice &d, unsigned number_of_rolls = 1) {
     // Возвращаем среднее значение бросков (математическое ожидание)
     return static_cast<double>(accum) / static_cast<double>(number_of_rolls);
 }
+
+// Функция для вычисления вероятности попадания в заданное значение value
+double value_probabilty(AbstractDice &d, unsigned value, unsigned number_of_rolls = 1) {
+    unsigned accum = 0;  // Счётчик числа попаданий
+    // Выполняем number_of_rolls бросков кубика и считаем, сколько раз выпало нужное значение
+    for (unsigned cnt = 0; cnt != number_of_rolls; ++cnt) {
+        if (d.roll() == value) accum += 1;  // Если выпало нужное значение, увеличиваем счётчик
+    }
+    return static_cast<double>(accum) / number_of_rolls;  // Возвращаем вероятность как отношение числа попаданий к общему числу бросков
+}
+
+int main() {
+
+    // Инициализируем кубик с 100 гранями и seed для генератора случайных чисел
+    int max = 100, number_of_rolls = 1000000;  // max — количество граней кубика, number_of_rolls — количество бросков для вычисления ожидания
+    Dice base(max, 1123);  // Обычный кубик
+
+    // Создаём объект DoubleDice, который использует как PenaltyDice, так и BonusDice
+    DoubleDice child(base);
+
+    // Вычисляем и выводим математическое ожидание для DoubleDice
+    std::cout << "Expected value: " << expected_value(child, number_of_rolls) << std::endl;
+
+    // Открываем файл для записи результатов
+    std::ofstream data("third.csv");
+    
+    // Записываем заголовки для таблицы данных
+    data << "Target\tDouble" << std::endl;
+
+    // Рассчитываем вероятность выпадения различных значений для DoubleDice и записываем в файл
+    for (int target = 1; target < max; target++) {
+        data << target << "\t" << value_probabilty(child, target, number_of_rolls) << std::endl;  // Вычисляем вероятность для каждого значения
+    }
+    data.close();  // Закрываем файл после завершения записи
+
+    return 0;
+}
