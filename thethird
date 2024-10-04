@@ -1,0 +1,88 @@
+> миша:
+`
+#include <random>  // Подключаем библиотеку для генерации случайных чисел
+#include <fstream>  // Для записи данных в файл
+#include <iostream>  // Для вывода данных в консоль
+
+// Абстрактный базовый класс, представляющий интерфейс для кубиков
+struct AbstractDice {
+    virtual ~AbstractDice() {}  // Виртуальный деструктор для корректного удаления объектов
+    virtual unsigned roll() = 0;  // Чисто виртуальный метод для броска кубика
+};
+
+// Класс Dice моделирует обычный кубик с количеством граней max
+class Dice : public AbstractDice {
+public:
+    // Конструктор принимает максимальное значение на кубике и начальное значение для генератора случайных чисел
+    Dice(unsigned max, unsigned seed):
+        max(max), dstr(1, max), reng(seed) {}
+    
+    // Метод roll возвращает случайное число от 1 до max
+    unsigned roll() override {
+        return dstr(reng);  // Генерируем случайное число
+    }
+
+private:
+    unsigned max;  // Максимальное значение (количество граней кубика)
+    std::uniform_int_distribution<unsigned> dstr;  // Объект для генерации равномерно распределённых случайных чисел
+    std::default_random_engine reng;  // Генератор случайных чисел
+};
+
+// Класс PenaltyDice моделирует кубик со штрафом (выбирает минимальный результат из двух бросков)
+// Используем виртуальное наследование от AbstractDice, чтобы избежать проблемы ромбовидного наследования
+class PenaltyDice : virtual public AbstractDice {
+public:
+    // Конструктор принимает ссылку на объект кубика, который будет использоваться для бросков
+    PenaltyDice(AbstractDice &dice) :
+        dice(dice) {}
+    
+    // Метод roll возвращает наименьший результат из двух бросков кубика
+    unsigned roll() override {
+        auto first = dice.roll(), second = dice.roll();  // Выполняем два броска
+        return first <= second ? first : second;  // Возвращаем наименьший результат
+    }
+
+private:
+    AbstractDice &dice;  // Ссылка на объект кубика
+};
+
+// Класс BonusDice моделирует кубик с преимуществом (выбирает максимальный результат из двух бросков)
+// Также используем виртуальное наследование от AbstractDice
+class BonusDice : virtual public AbstractDice {
+public:
+    // Конструктор принимает ссылку на объект кубика, который будет использоваться для бросков
+    BonusDice(AbstractDice &dice) :
+        dice(dice) {}
+    
+    // Метод roll возвращает наибольший результат из двух бросков кубика
+    unsigned roll() override {
+        auto first = dice.roll(), second = dice.roll();  // Выполняем два броска
+        return first >= second ? first : second;  // Возвращаем наибольший результат
+    }
+
+private:
+    AbstractDice &dice;  // Ссылка на объект кубика
+};
+
+// Класс DoubleDice наследует одновременно от PenaltyDice и BonusDice, что позволяет использовать как штраф, так и преимущество
+class DoubleDice : public PenaltyDice, public BonusDice {
+public:
+    // Конструктор принимает ссылку на кубик и передаёт его в конструкторы PenaltyDice и BonusDice
+    DoubleDice(AbstractDice& dice) : 
+        PenaltyDice(dice), BonusDice(dice) {}
+    
+    // Метод roll вычисляет среднее значение между штрафом (PenaltyDice) и преимуществом (BonusDice)
+    unsigned roll() override {
+        return (PenaltyDice::roll() + BonusDice::roll()) / 2;  // Возвращаем среднее значение между минимальным и максимальным результатом
+    }
+};
+
+// Функция для вычисления математического ожидания для любого объекта, реализующего AbstractDice
+double expected_value(AbstractDice &d, unsigned number_of_rolls = 1) {
+    auto accum = 0llu;  // Счётчик суммы всех бросков
+    // Выполняем number_of_rolls бросков кубика и суммируем их результаты
+    for (unsigned cnt = 0; cnt != number_of_rolls; ++cnt)
+        accum += d.roll();
+    // Возвращаем среднее значение бросков (математическое ожидание)
+    return static_cast<double>(accum) / static_cast<double>(number_of_rolls);
+}
