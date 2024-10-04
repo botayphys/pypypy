@@ -1,0 +1,78 @@
+#include <random>  // Подключаем библиотеку для работы с генерацией случайных чисел
+#include <iostream>  // Для вывода информации в консоль
+
+// Абстрактный базовый класс, описывающий интерфейс для кубика (или набора кубиков)
+// Этот класс содержит чисто виртуальный метод roll, который будет реализован в классах-наследниках
+struct AbstractDice {
+    virtual ~AbstractDice() {}  // Виртуальный деструктор, чтобы корректно вызывались деструкторы у наследников
+    virtual unsigned roll() = 0;  // Чисто виртуальный метод для броска кубика, который обязан реализовать каждый класс-наследник
+};
+
+// Класс Dice описывает случайный бросок кубика с количеством граней max
+class Dice : public AbstractDice {
+public:
+    // Конструктор принимает максимальное значение кубика (max) и seed — начальное значение для генератора случайных чисел
+    Dice(unsigned max, unsigned seed) :
+        max(max), dstr(1, max), reng(seed) {}  // Инициализируем члены класса max, распределение и генератор случайных чисел
+
+    // Реализация метода roll, который генерирует случайное число от 1 до max
+    unsigned roll() override {
+        return dstr(reng);  // Возвращаем случайное число
+    }
+
+private:
+    unsigned max;  // Максимальное значение (количество граней кубика)
+    std::uniform_int_distribution<unsigned> dstr;  // Объект, описывающий равномерное распределение для чисел от 1 до max
+    std::default_random_engine reng;  // Генератор случайных чисел
+};
+
+// Класс ThreeDicePool описывает набор из трёх кубиков (или других объектов, реализующих AbstractDice)
+class ThreeDicePool : public AbstractDice {
+public:
+    // Конструктор принимает три объекта, которые реализуют интерфейс AbstractDice
+    ThreeDicePool(AbstractDice &dice_1, AbstractDice &dice_2, AbstractDice &dice_3) :
+        dice_1(dice_1), dice_2(dice_2), dice_3(dice_3) {}
+
+    // Реализация метода roll, который возвращает сумму бросков трёх переданных кубиков
+    unsigned roll() override {
+        return dice_1.roll() + dice_2.roll() + dice_3.roll();  // Вызываем метод roll для каждого кубика и суммируем результат
+    }
+
+private:
+    // Ссылки на три кубика (или другие объекты с методом roll), переданные в конструктор
+    AbstractDice &dice_1, &dice_2, &dice_3;
+};
+
+// Функция вычисления математического ожидания для объекта, реализующего AbstractDice
+// Параметры: d — объект, реализующий AbstractDice, number_of_rolls — количество бросков (по умолчанию 1)
+double expected_value(AbstractDice &d, unsigned number_of_rolls = 1) {
+    auto accum = 0llu;  // Переменная для накопления суммы бросков (используем unsigned long long для предотвращения переполнения)
+    // Цикл, выполняющий number_of_rolls бросков кубика
+    for (unsigned cnt = 0; cnt != number_of_rolls; ++cnt)
+        accum += d.roll();  // Добавляем результат каждого броска в accum
+    // Возвращаем среднее значение, разделив общую сумму на количество бросков
+    return static_cast<double>(accum) / static_cast<double>(number_of_rolls);
+}
+
+int main() {
+    // Инициализируем три кубика с одинаковым количеством граней (max = 6) и разными начальными значениями для генератора случайных чисел
+    int max = 6, attemps = 1000000;  // max — количество граней кубика, attemps — количество бросков для расчета математического ожидания
+    Dice alpha(max, 12414);  // Первый кубик
+    Dice beta(max, 12423414);  // Второй кубик
+    Dice gamma(max, 122414);  // Третий кубик
+
+    // Создаём объект ThreeDicePool, передав ему три кубика (alpha, beta, gamma)
+    ThreeDicePool three(alpha, beta, gamma);
+
+    // Демонстрация броска одного кубика
+    std::cout << "Dice roll: " << alpha.roll() << std::endl;
+    // Демонстрация броска трёх кубиков
+    std::cout << "Three dice rolls: " << three.roll() << std::endl;
+
+    // Вычисление математического ожидания для одного кубика (alpha)
+    std::cout << "Expected value for Dice: " << expected_value(alpha, attemps) << std::endl;
+    // Вычисление математического ожидания для набора из трёх кубиков
+    std::cout << "Expected value for ThreeDicePool: " << expected_value(three, attemps) << std::endl;
+
+    return 0;
+}
